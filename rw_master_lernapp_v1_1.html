@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RW-Mastertrainer BFS2 Einzelhandel</title>
+  <!--
+    RW-Mastertrainer BFS2 Einzelhandel
+    Version 1.1 – Stand: 01.05.2026
+    Empfohlener Dateiname: rw_master_lernapp.html
+
+    LEHRERHINWEIS:
+    - Grunddaten: CONFIG
+    - Module/Themen/Farben: MODULES
+    - Aufgabenpools, Variantenlogik und Lösungen: TASK_BANK + generateSupplementTasks
+    - Bestehensgrenze und Aufgabenanzahl: CONFIG.passPercent / CONFIG.tasksPerLevel
+    - Lehrermodus-Code: CONFIG.teacherCode
+    - Standard-Mailadresse: CONFIG.teacherEmail
+  -->
+  <style>
+    :root{
+      --primary:#005aab;
+      --primary-dark:#004a8d;
+      --bg:#f4f7f6;
+      --card:#ffffff;
+      --text:#25313b;
+      --muted:#667085;
+      --border:#d0d5dd;
+      --success:#198754;
+      --warning:#b54708;
+      --error:#b42318;
+      --focus:#ffbf47;
+      --shadow:0 8px 24px rgba(16,24,40,.10);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.45}
+    a{color:inherit}
+    button,input,select,textarea{font:inherit}
+    button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+    .page{width:min(1120px,100%);margin:0 auto;padding:16px}
+    .app-shell{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;position:relative;margin:12px 0 40px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:18px}
+    .brand{display:flex;gap:12px;align-items:center;min-width:0}
+    .logo{width:48px;height:48px;border-radius:14px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:1.5rem;font-weight:900;box-shadow:0 3px 8px rgba(0,0,0,.18)}
+    h1,h2,h3{line-height:1.15;margin:0 0 10px}
+    h1{font-size:clamp(1.45rem,3.5vw,2.15rem);color:var(--primary)}
+    h2{font-size:clamp(1.2rem,2.8vw,1.65rem);color:var(--primary)}
+    h3{font-size:1.05rem}
+    .subtitle{color:var(--muted);margin:0;font-size:.95rem}
+    .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+    .btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer;background:var(--primary);color:#fff;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+    .btn:hover{filter:brightness(.96)}
+    .btn.secondary{background:#e5e7eb;color:#344054}
+    .btn.success{background:var(--success)}
+    .btn.warning{background:#f79009;color:#111827}
+    .btn.danger{background:var(--error)}
+    .btn.ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+    .btn:disabled{background:#cbd5e1;color:#475569;cursor:not-allowed;filter:none}
+    .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#eef2f7;color:#344054;padding:4px 10px;font-weight:700;font-size:.78rem}
+    .card{border:1px solid #e5e7eb;background:#fff;border-radius:16px;padding:16px;box-shadow:0 3px 10px rgba(16,24,40,.04)}
+    .intro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
+    .tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:16px}
+    .tile{border:1px solid #e5e7eb;border-left:7px solid var(--primary);border-radius:16px;padding:18px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.05);cursor:pointer;text-align:left;display:flex;gap:14px;min-height:150px;transition:.18s transform,.18s box-shadow}
+    .tile:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.09)}
+    .tile .icon{font-size:2.1rem;min-width:42px;text-align:center}
+    .tile p{margin:.25rem 0 .6rem;color:#555;font-size:.9rem}
+    .level-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}
+    .level-card{border:2px solid #e5e7eb;border-radius:16px;padding:14px;background:#fff;text-align:left}
+    .level-card.active{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 18%,transparent)}
+    .level-card.locked{opacity:.65;background:#f8fafc}
+    .progress-wrap{margin:14px 0 8px;background:#e5e7eb;border-radius:999px;height:12px;overflow:hidden}
+    .progress-bar{height:100%;background:var(--primary);width:0%;transition:width .25s}
+    .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+    .task-box{background:#f8fafc;border-left:6px solid var(--primary);border-radius:12px;padding:16px;margin:16px 0;font-size:1.02rem}
+    .input-panel{display:grid;gap:12px;margin:14px 0}
+    .choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    .choice{border:2px solid #d0d5dd;border-radius:12px;padding:12px;background:#fff;cursor:pointer;text-align:left;min-height:54px}
+    .choice[aria-pressed="true"]{border-color:var(--primary);background:#eef6ff}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    label{font-weight:700;font-size:.92rem;display:block;margin-bottom:5px}
+    input,select,textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:11px;background:#fff;min-height:44px}
+    .feedback{display:none;margin-top:14px;border-radius:12px;padding:14px;font-weight:700;border:2px solid transparent}
+    .feedback.ok{display:block;background:#d1e7dd;color:#0f5132;border-color:#badbcc}
+    .feedback.bad{display:block;background:#f8d7da;color:#842029;border-color:#f5c2c7}
+    .feedback.info{display:block;background:#e7f3ff;color:#084298;border-color:#b6d4fe}
+    .screen{display:none}.screen.active{display:block}
+    .result-box{border:2px solid var(--primary);border-radius:16px;padding:18px;background:#fff;margin-top:16px}
+    .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    table{border-collapse:collapse;width:100%;margin-top:10px}th,td{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}th{background:#f2f4f7}
+    .teacher-panel{border:2px dashed var(--primary);border-radius:16px;padding:16px;background:#fbfdff;margin-top:16px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .tiny{font-size:.8rem;color:var(--muted)}
+    .hidden{display:none!important}
+    @media(max-width:620px){.topbar{align-items:flex-start;flex-direction:column}.actions{justify-content:flex-start}.app-shell{padding:16px}.tile{min-height:auto}.btn{width:100%}.actions .btn{width:auto}.choice-grid{grid-template-columns:1fr}}
+    @media print{
+      body{background:#fff;color:#000}.page,.app-shell{padding:0;margin:0;box-shadow:none;border-radius:0;width:100%}.topbar,#screen-home,#screen-module,#screen-game,.no-print{display:none!important}#screen-result{display:block!important}.result-box{border:0;padding:0}.btn{display:none!important}th{background:#eee!important;color:#000}.pill{border:1px solid #000;background:#fff;color:#000}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="app-shell" role="application" aria-label="RW-Mastertrainer BFS2 Einzelhandel">
+    <header class="topbar no-print">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">RW</div>
+        <div>
+          <h1>RW-Mastertrainer BFS2</h1>
+          <p class="subtitle">Interaktive Lernapp für Rechnungswesen im Einzelhandel · Version 1.1</p>
+        </div>
+      </div>
+      <nav class="actions" aria-label="Hauptnavigation">
+        <button class="btn secondary" onclick="showHome()">🏠 Übersicht</button>
+        <button class="btn ghost" onclick="openTeacherLogin()">👩‍🏫 Lehrermodus</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="screen-home" class="screen active">
+        <div class="card">
+          <h2>Willkommen im Lernportal</h2>
+          <p>Wähle ein Thema aus. Jede Einheit hat drei Stufen mit je 20 Aufgaben. Eine Stufe ist bestanden, wenn du mindestens 15 Aufgaben richtig löst. Deine Freischaltungen und besten Ergebnisse werden in diesem Browser gespeichert.</p>
+        </div>
+        <div class="intro-grid">
+          <div class="card"><h3>📘 Kurze Erklärung</h3><p>Die App trainiert zentrale Themen: Bestandskonten, Erfolgskonten, Buchungssätze, Steuern, EBK, SBK, GuV und Steuerabschluss.</p></div>
+          <div class="card"><h3>🎮 Gamification</h3><p>Du sammelst Punkte, schaltest Stufen frei und erhältst Badges für bestandene Themen.</p></div>
+          <div class="card"><h3>📄 Ergebnis sichern</h3><p>Nach jeder Stufe kannst du dein Ergebnis als PDF speichern und per E-Mail an die Lehrkraft senden.</p></div>
+        </div>
+        <div id="moduleTiles" class="tile-grid" aria-label="Themenauswahl"></div>
+      </section>
+
+      <section id="screen-module" class="screen">
+        <button class="btn secondary no-print" onclick="showHome()">← Zur Übersicht</button>
+        <div class="card" style="margin-top:14px">
+          <h2 id="moduleTitle"></h2>
+          <p id="moduleIntro"></p>
+          <p><strong>Anleitung:</strong> Wähle eine freigeschaltete Stufe, bearbeite 20 Aufgaben und prüfe jede Antwort. Bei Fehlern erhältst du kurze Lernhinweise.</p>
+        </div>
+        <div id="levelCards" class="level-row"></div>
+        <div class="actions"><button id="startLevelBtn" class="btn" onclick="startSelectedLevel()">Stufe starten</button></div>
+      </section>
+
+      <section id="screen-game" class="screen">
+        <div class="meta-row no-print">
+          <span class="pill" id="gameModulePill"></span>
+          <span class="pill" id="gameLevelPill"></span>
+          <span class="pill" id="scorePill"></span>
+        </div>
+        <div class="progress-wrap" aria-label="Fortschritt"><div class="progress-bar" id="progressBar"></div></div>
+        <p class="tiny" id="progressText"></p>
+        <div class="task-box" id="taskBox"></div>
+        <div id="answerArea" class="input-panel"></div>
+        <div class="actions no-print">
+          <button id="checkBtn" class="btn" onclick="checkCurrentAnswer()">Antwort prüfen</button>
+          <button id="nextBtn" class="btn success hidden" onclick="nextTask()">Nächste Aufgabe</button>
+          <button class="btn secondary" onclick="confirmAbort()">Abbrechen</button>
+        </div>
+        <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+      </section>
+
+      <section id="screen-result" class="screen">
+        <div class="result-box" id="printResult">
+          <h2>Auswertung</h2>
+          <div class="form-grid no-print" style="margin-bottom:12px">
+            <div><label for="studentName">Name</label><input id="studentName" placeholder="Name eingeben" oninput="updateResultTexts()"></div>
+            <div><label for="studentClass">Klasse/Kurs</label><input id="studentClass" placeholder="z. B. BFS2 EH" oninput="updateResultTexts()"></div>
+          </div>
+          <div id="resultSummary"></div>
+          <h3>Lernhinweise</h3>
+          <div id="learningAdvice"></div>
+          <h3>Falsch beantwortete Aufgaben/Themen</h3>
+          <div id="mistakeTable"></div>
+          <p class="tiny"><strong>PDF-Hinweis:</strong> Klicke auf „Ergebnis als PDF speichern“ und wähle im Druckdialog „Als PDF speichern“. Hänge die gespeicherte PDF-Datei anschließend manuell an die E-Mail an.</p>
+        </div>
+        <div class="actions no-print" style="margin-top:14px">
+          <button class="btn" onclick="window.print()">📄 Ergebnis als PDF speichern</button>
+          <button class="btn success" onclick="sendMail()">✉ Ergebnis per E-Mail senden</button>
+          <button class="btn secondary" onclick="showCurrentModule()">Zurück zum Thema</button>
+          <button class="btn ghost" onclick="showHome()">Übersicht</button>
+        </div>
+      </section>
+
+      <section id="teacherModal" class="screen teacher-panel hidden" aria-label="Lehrermodus">
+        <h2>Lehrermodus</h2>
+        <div id="teacherLogin">
+          <label for="teacherCode">Zugangscode</label>
+          <input id="teacherCode" type="password" inputmode="numeric" placeholder="Code eingeben">
+          <button class="btn" onclick="verifyTeacherCode()" style="margin-top:10px">Öffnen</button>
+        </div>
+        <div id="teacherContent" class="hidden">
+          <p><strong>Hinweis:</strong> Der Zugangscode ist kein echter Sicherheitsschutz. Er verhindert nur zufälliges Öffnen.</p>
+          <div id="teacherStats"></div>
+          <div class="actions" style="margin-top:12px">
+            <button class="btn success" onclick="unlockAllLevels()">Alle Stufen freischalten</button>
+            <button class="btn danger" onclick="resetProgress()">Lokalen Fortschritt zurücksetzen</button>
+            <button class="btn secondary" onclick="closeTeacherMode()">Schließen</button>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <h3>Bearbeitung im Code</h3>
+            <p>Aufgaben und Lösungen findest du im JavaScript-Bereich unter <code>TASK_BANK</code>. Echte Varianten ohne Wiederholungen entstehen zusätzlich über <code>generateSupplementTasks()</code>. Globale Einstellungen stehen in <code>CONFIG</code>. Farben und Themen stehen in <code>MODULES</code>.</p>
+            <p>PDF wird über <code>window.print()</code> erzeugt. E-Mail wird über <code>mailto:</code> mit der Adresse <strong>wijnandts@bk-erkelenz.de</strong> vorbereitet.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+/* =====================
+   GLOBALE EINSTELLUNGEN
+   ===================== */
+const CONFIG = {
+  appName: 'RW-Mastertrainer BFS2 Einzelhandel',
+  version: 'Version 1.1 – Stand: 01.05.2026',
+  suggestedFilename: 'rw_master_lernapp.html',
+  tasksPerLevel: 20,
+  passPercent: 75,
+  teacherEmail: 'wijnandts@bk-erkelenz.de',
+  teacherCode: '150411',
+  storageKey: 'rw_mastertrainer_bfs2_v1'
+};
+
+const MODULES = {
+  buchungssaetze: {title:'Buchungssätze', icon:'📝', color:'#005aab', intro:'Trainiere den Weg vom Geschäftsfall zum Buchungssatz: Soll an Haben.'},
+  bestandskonten: {title:'Bestandskonten', icon:'📁', color:'#005aab', intro:'Erkenne Aktiv- und Passivkonten sowie Mehrungen und Minderungen.'},
+  erfolgskonten: {title:'Erfolgskonten', icon:'📈', color:'#e67e22', intro:'Übe Aufwendungen und Erträge sowie deren Buchungsseiten.'},
+  steuern: {title:'Umsatzsteuer & Vorsteuer', icon:'💸', color:'#27ae60', intro:'Unterscheide Einkauf und Verkauf sowie Vorsteuer und Umsatzsteuer.'},
+  steuerabschluss: {title:'Steuerabschluss', icon:'🏁', color:'#8e44ad', intro:'Ermittle Zahllast oder Vorsteuerüberhang aus USt und VSt.'},
+  ebk: {title:'Eröffnungsbilanzkonto', icon:'🔑', color:'#005aab', intro:'Übertrage Anfangsbestände in das EBK: Passiva im Soll, Aktiva im Haben.'},
+  sbk: {title:'Schlussbilanzkonto', icon:'🔒', color:'#005aab', intro:'Sammle Schlussbestände im SBK: Aktiva im Soll, Passiva im Haben.'},
+  guv: {title:'Gewinn- und Verlustkonto', icon:'⚖️', color:'#20c997', intro:'Ermittle Gewinn oder Verlust aus Aufwendungen und Erträgen.'}
+};
+
+/* =====================
+   AUFGABENPOOLS UND LÖSUNGEN
+   Neue Aufgaben können pro Modul/Stufe ergänzt werden.
+   type: mc | booking | number
+   ===================== */
+const TASK_BANK = {
+  bestandskonten: {
+    1: [
+      mc('Kasse ist ein ...','Aktivkonto',['Aktivkonto','Passivkonto','Aufwandskonto','Ertragskonto'],'Aktivkonten zeigen Vermögenswerte.'),
+      mc('Verbindlichkeiten a. L. L. sind ein ...','Passivkonto',['Aktivkonto','Passivkonto','Aufwandskonto','Ertragskonto'],'Schulden stehen auf Passivkonten.'),
+      mc('Bei einem Aktivkonto wird eine Mehrung gebucht im ...','Soll',['Soll','Haben'],'Aktivkonten mehren sich im Soll.'),
+      mc('Bei einem Passivkonto wird eine Mehrung gebucht im ...','Haben',['Soll','Haben'],'Passivkonten mehren sich im Haben.'),
+      mc('Bank nimmt durch Kundenzahlung zu. Buchungsseite?','Soll',['Soll','Haben'],'Bank ist ein Aktivkonto: Mehrung im Soll.'),
+      mc('Darlehen nimmt durch Tilgung ab. Buchungsseite?','Soll',['Soll','Haben'],'Passivkonto nimmt im Soll ab.'),
+      mc('Kasse nimmt durch Barzahlung ab. Buchungsseite?','Haben',['Soll','Haben'],'Aktivkonto nimmt im Haben ab.'),
+      mc('Forderungen nehmen durch Zahlung des Kunden ab. Buchungsseite?','Haben',['Soll','Haben'],'Aktivkonto Forderungen nimmt im Haben ab.'),
+      mc('Fuhrpark ist ein ...','Aktivkonto',['Aktivkonto','Passivkonto','Ertragskonto'],'Fuhrpark gehört zum Anlagevermögen.'),
+      mc('Eigenkapital ist ein ...','Passivkonto',['Aktivkonto','Passivkonto','Aufwandskonto'],'Eigenkapital steht auf der Passivseite.')
+    ],
+    2: [
+      mc('Kauf eines PCs bar: Welches Konto nimmt zu?','BGA',['BGA','Kasse','Darlehen','Eigenkapital'],'BGA ist der Vermögenswert, der zunimmt.'),
+      mc('Kunde überweist offene Rechnung: Welches Konto nimmt ab?','Forderungen',['Bank','Forderungen','Kasse','Verbindlichkeiten'],'Die Forderung wird durch Zahlung ausgeglichen.'),
+      mc('Lieferantenrechnung wird per Bank bezahlt: Welches Passivkonto nimmt ab?','Verbindlichkeiten',['Verbindlichkeiten','Darlehen','Eigenkapital','Bank'],'Eine Schuld gegenüber Lieferanten wird weniger.'),
+      mc('Aufnahme eines Bankdarlehens: Darlehen wird gebucht im ...','Haben',['Soll','Haben'],'Passivkonto Darlehen nimmt im Haben zu.'),
+      mc('Bareinzahlung auf Bank: Kasse wird gebucht im ...','Haben',['Soll','Haben'],'Kasse ist Aktivkonto und nimmt ab.'),
+      mc('Barkauf eines Scanners: Kasse wird gebucht im ...','Haben',['Soll','Haben'],'Barzahlung mindert Kasse im Haben.'),
+      mc('Kauf von Waren auf Ziel: Verbindlichkeiten werden gebucht im ...','Haben',['Soll','Haben'],'Schulden nehmen im Haben zu.'),
+      mc('Tilgung eines Darlehens per Bank: Bank wird gebucht im ...','Haben',['Soll','Haben'],'Bank nimmt als Aktivkonto ab.')
+    ],
+    3: [
+      mc('Gemischter Fall: Kauf eines Lieferwagens auf Ziel. Richtige Konten?','Fuhrpark und Verbindlichkeiten',['Fuhrpark und Verbindlichkeiten','BGA und Bank','Waren und Kasse','Darlehen und Bank'],'Ein Lieferwagen gehört zum Fuhrpark; auf Ziel erzeugt Verbindlichkeiten.'),
+      mc('Umwandlung einer Lieferantenschuld in Darlehen: Welche Aussage stimmt?','Verbindlichkeiten nehmen ab, Darlehen nimmt zu',['Beide nehmen ab','Verbindlichkeiten nehmen ab, Darlehen nimmt zu','Bank nimmt zu','Eigenkapital nimmt zu'],'Eine Schuldart wird in eine andere Schuldart umgewandelt.'),
+      mc('Aktivtausch bedeutet ...','ein Aktivkonto nimmt zu, ein anderes ab',['beide Aktivkonten nehmen zu','ein Aktivkonto nimmt zu, ein anderes ab','Passivkonto nimmt zu','Eigenkapital verändert sich'],'Beim Aktivtausch bleibt die Bilanzsumme gleich.'),
+      mc('Passivtausch bedeutet ...','ein Passivkonto nimmt zu, ein anderes ab',['ein Passivkonto nimmt zu, ein anderes ab','Bank nimmt ab','BGA nimmt zu','Gewinn steigt'],'Beim Passivtausch bleibt die Bilanzsumme gleich.'),
+      mc('Aktiv-Passiv-Mehrung bedeutet ...','Aktiva und Passiva nehmen zu',['Aktiva und Passiva nehmen zu','Aktiva und Passiva nehmen ab','nur Aufwand steigt','nur Ertrag steigt'],'Beispiel: Kauf auf Ziel.')
+    ]
+  },
+  buchungssaetze: {
+    1: [
+      booking('Barabhebung vom Bankkonto für die Kasse.', ['Kasse'], ['Bank'], 'Kasse nimmt zu, Bank nimmt ab.'),
+      booking('Kunde zahlt offene Rechnung per Bank.', ['Bank'], ['Forderungen a. L. L.'], 'Bank nimmt zu, Forderungen nehmen ab.'),
+      booking('Kauf eines PCs bar.', ['BGA'], ['Kasse'], 'BGA nimmt zu, Kasse nimmt ab.'),
+      booking('Kauf von Waren auf Ziel.', ['Waren (Vorrat)'], ['Verbindlichkeiten a. L. L.'], 'Waren nehmen zu, Verbindlichkeiten nehmen zu.'),
+      booking('Tilgung eines Darlehens per Bank.', ['Darlehen'], ['Bank'], 'Darlehen nimmt ab, Bank nimmt ab.'),
+      booking('Einzahlung von Bargeld auf das Bankkonto.', ['Bank'], ['Kasse'], 'Bank nimmt zu, Kasse nimmt ab.')
+    ],
+    2: [
+      booking('Zahlung der Ladenmiete per Bank.', ['Mietaufwand'], ['Bank'], 'Aufwendungen stehen im Soll.'),
+      booking('Barverkauf von Waren ohne Steuerbetrachtung.', ['Kasse'], ['Umsatzerlöse'], 'Erträge stehen im Haben.'),
+      booking('Überweisung der Gehälter per Bank.', ['Personalaufwand'], ['Bank'], 'Personalaufwand im Soll, Bankabgang im Haben.'),
+      booking('Bankgutschrift für Zinserträge.', ['Bank'], ['Zinserträge'], 'Zinserträge sind Erträge im Haben.'),
+      booking('Barkauf von Büromaterial.', ['Büromaterial'], ['Kasse'], 'Büromaterial als Aufwand im Soll.'),
+      booking('Zahlung von Werbekosten per Bank.', ['Werbeaufwand'], ['Bank'], 'Werbeaufwand im Soll.')
+    ],
+    3: [
+      booking('Wareneinkauf auf Ziel: 1.000 € netto + 190 € Vorsteuer.', ['Aufwendungen für Waren','Vorsteuer'], ['Verbindlichkeiten a. L. L.'], 'Beim Einkauf entsteht Vorsteuer im Soll.'),
+      booking('Warenverkauf bar: 1.190 € brutto inkl. 19 % USt.', ['Kasse'], ['Umsatzerlöse','Umsatzsteuer'], 'Beim Verkauf entsteht Umsatzsteuer im Haben.'),
+      booking('Kauf eines Laptops auf Ziel: 500 € netto + 95 € Vorsteuer.', ['BGA','Vorsteuer'], ['Verbindlichkeiten a. L. L.'], 'Nettoanlage und Vorsteuer im Soll.'),
+      booking('Telefonrechnung per Bank: 100 € netto + 19 € Vorsteuer.', ['Postgebühren','Vorsteuer'], ['Bank'], 'Aufwand und Vorsteuer im Soll.'),
+      booking('Barverkauf: 595 € brutto inkl. 19 % USt.', ['Kasse'], ['Umsatzerlöse','Umsatzsteuer'], 'Brutto kommt in die Kasse, netto Erlös und Steuer ins Haben.')
+    ]
+  },
+  erfolgskonten: {
+    1: [
+      mc('Aufwendungen werden gebucht im ...','Soll',['Soll','Haben'],'Aufwendungen mindern das Eigenkapital und stehen im Soll.'),
+      mc('Erträge werden gebucht im ...','Haben',['Soll','Haben'],'Erträge erhöhen das Eigenkapital und stehen im Haben.'),
+      mc('Mietaufwand ist ein ...','Aufwandskonto',['Aufwandskonto','Ertragskonto','Aktivkonto'],'Miete ist ein Aufwand.'),
+      mc('Umsatzerlöse sind ein ...','Ertragskonto',['Aufwandskonto','Ertragskonto','Passivkonto'],'Verkäufe erzeugen Erträge.'),
+      mc('Zinsaufwand steht im ...','Soll',['Soll','Haben'],'Aufwand steht im Soll.'),
+      mc('Zinserträge stehen im ...','Haben',['Soll','Haben'],'Erträge stehen im Haben.')
+    ],
+    2: [
+      mc('Zahlung von Gehältern per Bank: Welches Konto im Soll?','Personalaufwand',['Bank','Personalaufwand','Umsatzerlöse','Kasse'],'Gehälter sind Aufwand.'),
+      mc('Bankgutschrift für Zinserträge: Welches Konto im Haben?','Zinserträge',['Bank','Zinserträge','Zinsaufwand','Forderungen'],'Zinserträge sind Erträge.'),
+      mc('Barverkauf von Waren: Welches Erfolgskonto wird angesprochen?','Umsatzerlöse',['Umsatzerlöse','Mietaufwand','BGA','Bank'],'Warenverkauf führt zu Umsatzerlösen.'),
+      mc('Stromrechnung per Bank: Welches Konto im Soll?','Energieaufwand',['Bank','Energieaufwand','Umsatzsteuer','Eigenkapital'],'Stromkosten sind Aufwand.'),
+      mc('Werberechnung bar bezahlt: Welches Konto im Soll?','Werbeaufwand',['Werbeaufwand','Kasse','Zinserträge','Forderungen'],'Werbung ist Aufwand.')
+    ],
+    3: [
+      number('Ein Bruttobetrag von 119,00 € enthält 19 % USt. Wie hoch ist der Nettobetrag?', 100, 'Brutto durch 1,19 teilen.'),
+      number('Ein Nettobetrag von 250,00 € wird mit 19 % USt berechnet. Wie hoch ist die Steuer?', 47.5, 'Netto × 0,19.'),
+      mc('Erfolgskonten werden am Jahresende abgeschlossen über ...','GuV',['SBK','EBK','GuV','Bank'],'Aufwendungen und Erträge werden über GuV abgeschlossen.'),
+      mc('Aufwandskonto abschließen: Saldo steht im ...','Haben',['Soll','Haben'],'Der Saldo gleicht das Aufwandskonto auf der Habenseite aus.'),
+      mc('Ertragskonto abschließen: Saldo steht im ...','Soll',['Soll','Haben'],'Der Saldo gleicht das Ertragskonto auf der Sollseite aus.')
+    ]
+  },
+  steuern: {
+    1: [
+      mc('Vorsteuer entsteht beim ...','Einkauf',['Einkauf','Verkauf'],'Beim Einkauf zahlt das Unternehmen Vorsteuer.'),
+      mc('Umsatzsteuer entsteht beim ...','Verkauf',['Einkauf','Verkauf'],'Beim Verkauf schuldet das Unternehmen Umsatzsteuer.'),
+      mc('Vorsteuer steht normalerweise im ...','Soll',['Soll','Haben'],'Vorsteuer ist eine Forderung gegenüber dem Finanzamt.'),
+      mc('Umsatzsteuer steht normalerweise im ...','Haben',['Soll','Haben'],'Umsatzsteuer ist eine Verbindlichkeit gegenüber dem Finanzamt.'),
+      number('19 % Vorsteuer von 100,00 € netto?',19,'Netto × 0,19.'),
+      number('Brutto bei 200,00 € netto und 19 % USt?',238,'Netto × 1,19.')
+    ],
+    2: [
+      number('Wareneinkauf netto 500,00 €. Wie hoch ist die Vorsteuer?',95,'500 × 0,19.'),
+      number('Warenverkauf netto 800,00 €. Wie hoch ist die Umsatzsteuer?',152,'800 × 0,19.'),
+      number('Bruttobetrag 1.190,00 €. Wie hoch ist der Nettobetrag?',1000,'Brutto durch 1,19.'),
+      number('Bruttobetrag 595,00 €. Wie hoch ist der Steueranteil?',95,'Brutto minus Brutto/1,19.'),
+      mc('Beim Einkauf auf Ziel lautet der Steuerteil im Soll ...','Vorsteuer',['Vorsteuer','Umsatzsteuer','SBK','GuV'],'Beim Einkauf wird Vorsteuer gebucht.'),
+      mc('Beim Verkauf auf Ziel lautet der Steuerteil im Haben ...','Umsatzsteuer',['Vorsteuer','Umsatzsteuer','EBK','Bank'],'Beim Verkauf entsteht Umsatzsteuer.')
+    ],
+    3: [
+      number('Brutto 2.380,00 € beim Einkauf. Wie hoch ist die Vorsteuer?',380,'Nettowert = 2.380 / 1,19; Steuer = 380.'),
+      number('Brutto 357,00 € beim Verkauf. Wie hoch ist der Nettoerlös?',300,'357 / 1,19.'),
+      booking('Wareneinkauf auf Ziel 1.000 € netto + 190 € Vorsteuer.', ['Aufwendungen für Waren','Vorsteuer'], ['Verbindlichkeiten a. L. L.'], 'Vorsteuer beim Einkauf im Soll.'),
+      booking('Warenverkauf auf Ziel 2.380 € brutto inkl. USt.', ['Forderungen a. L. L.'], ['Umsatzerlöse','Umsatzsteuer'], 'Beim Verkauf: Forderungen brutto im Soll.'),
+      number('Netto 1.250,00 €. Wie hoch ist der Bruttobetrag bei 19 %?',1487.5,'Netto × 1,19.')
+    ]
+  },
+  steuerabschluss: {
+    1: [
+      number('Umsatzsteuer 900 €, Vorsteuer 300 €. Wie hoch ist die Zahllast?',600,'USt minus VSt.'),
+      number('Umsatzsteuer 500 €, Vorsteuer 650 €. Wie hoch ist der Vorsteuerüberhang?',150,'VSt ist größer als USt.'),
+      mc('Ist USt größer als VSt, entsteht eine ...','Zahllast',['Zahllast','Vorsteuerüberhang'],'Das Unternehmen muss zahlen.'),
+      mc('Ist VSt größer als USt, entsteht ein ...','Vorsteuerüberhang',['Zahllast','Vorsteuerüberhang'],'Das Unternehmen hat einen Erstattungsanspruch.')
+    ],
+    2: [
+      number('USt 1.240,50 €, VSt 780,25 €. Zahllast?',460.25,'Differenz bilden.'),
+      number('VSt 1.050,80 €, USt 990,40 €. Vorsteuerüberhang?',60.40,'VSt minus USt.'),
+      mc('Beim Abschluss wird das kleinere Steuerkonto zuerst ...','auf das größere Steuerkonto umgebucht',['auf GuV gebucht','auf das größere Steuerkonto umgebucht','auf EBK gebucht'],'Zuerst werden VSt und USt verrechnet.'),
+      mc('Die verbleibende Zahllast steht im Konto Umsatzsteuer im ...','Soll zum Ausgleich',['Soll zum Ausgleich','Haben zum Ausgleich'],'Der Rest wird gegen SBK/Verbindlichkeit ausgeglichen.')
+    ],
+    3: [
+      number('USt 3.421,77 €, VSt 2.198,39 €. Zahllast?',1223.38,'USt minus VSt.'),
+      number('VSt 4.010,66 €, USt 3.999,99 €. Vorsteuerüberhang?',10.67,'VSt minus USt.'),
+      mc('Fachbegriff für verbleibende Schuld gegenüber Finanzamt:','Zahllast',['Zahllast','Privatentnahme','Gewinn','Abschreibung'],'USt größer VSt = Zahllast.'),
+      mc('Fachbegriff für Erstattungsanspruch gegenüber Finanzamt:','Vorsteuerüberhang',['Zahllast','Vorsteuerüberhang','Umsatzerlös','Darlehen'],'VSt größer USt = Überhang.')
+    ]
+  },
+  ebk: {
+    1: [
+      mc('Aktiva der Eröffnungsbilanz stehen im EBK auf der ...','Habenseite',['Sollseite','Habenseite'],'Das EBK ist das Spiegelbild der Eröffnungsbilanz.'),
+      mc('Passiva der Eröffnungsbilanz stehen im EBK auf der ...','Sollseite',['Sollseite','Habenseite'],'Passiva werden im EBK im Soll übertragen.'),
+      number('Aktiva 10.000 €, Fremdkapital 4.000 €. Eigenkapital?',6000,'EK = Vermögen - Fremdkapital.'),
+      mc('Kasse als Aktivkonto wird im EBK gebucht im ...','Haben',['Soll','Haben'],'Aktiva stehen im EBK im Haben.'),
+      mc('Darlehen als Passivkonto wird im EBK gebucht im ...','Soll',['Soll','Haben'],'Passiva stehen im EBK im Soll.')
+    ],
+    2: [
+      number('BGA 3.000, Bank 2.000, Kasse 500, Darlehen 2.000, Verbindlichkeiten 800. Eigenkapital?',2700,'Aktiva 5.500 minus Fremdkapital 2.800.'),
+      number('Aktiva 25.000 €, Darlehen 8.000 €, Verbindlichkeiten 4.500 €. Eigenkapital?',12500,'25.000 - 12.500.'),
+      mc('Eröffnungsbuchung für Bank lautet ...','Bank an EBK',['EBK an Bank','Bank an EBK','SBK an Bank','GuV an Bank'],'Aktivkonten eröffnen im Soll gegen EBK.'),
+      mc('Eröffnungsbuchung für Darlehen lautet ...','EBK an Darlehen',['Darlehen an EBK','EBK an Darlehen','GuV an Darlehen','Darlehen an Bank'],'Passivkonten eröffnen im Haben gegen EBK.')
+    ],
+    3: [
+      number('Aktiva 18.345,67 €, Fremdkapital 9.876,54 €. Eigenkapital?',8469.13,'Differenz aus Vermögen und Fremdkapital.'),
+      number('BGA 5.111,20, Fuhrpark 8.222,40, Waren 3.333,30, Bank 1.234,56, FK 7.000,00. EK?',10901.46,'Aktiva addieren minus Fremdkapital.'),
+      mc('Warum ist das EBK ein Hilfskonto?','Es dient nur zur Eröffnung der Bestandskonten',['Es ist ein Erfolgskonto','Es dient nur zur Eröffnung der Bestandskonten','Es ersetzt die GuV','Es sammelt Steuerbeträge'],'Das EBK wird nur zu Jahresbeginn genutzt.'),
+      mc('Reihenfolge in einer gegliederten EB:','Anlagevermögen vor Umlaufvermögen',['Umlaufvermögen vor Anlagevermögen','Anlagevermögen vor Umlaufvermögen','Bank immer zuerst','Kasse immer zuerst'],'Die Bilanz ist gegliedert.')
+    ]
+  },
+  sbk: {
+    1: [
+      mc('Aktivkonten werden im SBK gebucht auf der ...','Sollseite',['Sollseite','Habenseite'],'Aktiva stehen im SBK im Soll.'),
+      mc('Passivkonten werden im SBK gebucht auf der ...','Habenseite',['Sollseite','Habenseite'],'Passiva stehen im SBK im Haben.'),
+      mc('Das SBK erstellt man am ...','Jahresende',['Jahresanfang','Jahresende'],'SBK = Schlussbilanzkonto.'),
+      mc('Bank als Aktivkonto steht im SBK im ...','Soll',['Soll','Haben'],'Aktiva stehen im SBK im Soll.')
+    ],
+    2: [
+      number('Aktiva 30.000 €, Fremdkapital 12.500 €. Eigenkapital im SBK?',17500,'EK = Aktiva - Fremdkapital.'),
+      mc('Schlussbestand eines Aktivkontos wird gebucht ...','SBK an Aktivkonto',['Aktivkonto an SBK','SBK an Aktivkonto','GuV an SBK','EBK an Aktivkonto'],'Der Saldo des Aktivkontos steht im Haben, Gegenkonto SBK.'),
+      mc('Schlussbestand eines Passivkontos wird gebucht ...','Passivkonto an SBK',['Passivkonto an SBK','SBK an Passivkonto','EBK an Passivkonto','GuV an Passivkonto'],'Passivkonto wird im Soll abgeschlossen.'),
+      mc('Das SBK ist Grundlage für die ...','Schlussbilanz',['Eröffnungsbilanz','Schlussbilanz','Umsatzsteuer','Kassenprüfung'],'Das SBK sammelt die Schlussbestände.')
+    ],
+    3: [
+      number('BGA 5.500, Waren 2.300, Bank 4.250, Kasse 600, Darlehen 4.000, Verb. 1.200. EK?',7450,'Aktiva 12.650 - FK 5.200.'),
+      mc('Gliederung der Passiva:','Eigenkapital vor Fremdkapital',['Fremdkapital vor Eigenkapital','Eigenkapital vor Fremdkapital','Bank vor Kasse','Darlehen vor EK'],'Bilanzgliederung: EK vor FK.'),
+      mc('Gliederung der Aktiva:','Anlagevermögen vor Umlaufvermögen',['Umlaufvermögen vor Anlagevermögen','Anlagevermögen vor Umlaufvermögen','Kasse vor BGA','Bank vor Fuhrpark'],'Anlagevermögen steht vor Umlaufvermögen.'),
+      number('Aktiva 42.345,90 €, Darlehen 15.120,30 €, Verb. 8.002,20 €. EK?',19223.40,'Aktiva minus Fremdkapital.')
+    ]
+  },
+  guv: {
+    1: [
+      mc('Aufwendungen stehen im GuV auf der ...','Sollseite',['Sollseite','Habenseite'],'GuV: Soll = Aufwendungen.'),
+      mc('Erträge stehen im GuV auf der ...','Habenseite',['Sollseite','Habenseite'],'GuV: Haben = Erträge.'),
+      mc('Sind Erträge größer als Aufwendungen, entsteht ...','Gewinn',['Gewinn','Verlust'],'Mehr Ertrag als Aufwand = Gewinn.'),
+      mc('Sind Aufwendungen größer als Erträge, entsteht ...','Verlust',['Gewinn','Verlust'],'Mehr Aufwand als Ertrag = Verlust.')
+    ],
+    2: [
+      number('Aufwendungen 8.000 €, Erträge 10.500 €. Gewinn?',2500,'Erträge minus Aufwendungen.'),
+      number('Aufwendungen 12.400 €, Erträge 9.900 €. Verlust?',2500,'Aufwendungen minus Erträge.'),
+      mc('Gewinn wird im GuV eingetragen auf der ...','Sollseite',['Sollseite','Habenseite'],'Gewinn gleicht die Sollseite aus.'),
+      mc('Verlust wird im GuV eingetragen auf der ...','Habenseite',['Sollseite','Habenseite'],'Verlust gleicht die Habenseite aus.')
+    ],
+    3: [
+      number('Aufwendungen 15.333,45 €, Erträge 19.876,10 €. Gewinn?',4542.65,'Erträge minus Aufwendungen.'),
+      number('Aufwendungen 22.010,80 €, Erträge 20.999,90 €. Verlust?',1010.90,'Aufwendungen minus Erträge.'),
+      mc('Der Erfolg aus der GuV verändert direkt das ...','Eigenkapital',['Bankkonto','Eigenkapital','EBK','Vorsteuerkonto'],'Gewinn erhöht, Verlust mindert das Eigenkapital.'),
+      mc('Erfolgskonten sind Unterkonten des ...','Eigenkapitals',['Bankkontos','Eigenkapitals','SBK','EBK'],'Aufwendungen und Erträge verändern das Eigenkapital.')
+    ]
+  }
+};
+
+function mc(q, answer, options, hint){return {type:'mc', q, answer, options, hint, topic:q};}
+function number(q, answer, hint){return {type:'number', q, answer, hint, topic:q};}
+function booking(q, soll, haben, hint){return {type:'booking', q, answer:{soll, haben}, hint, topic:q};}
+
+/* ===========================================================
+   VARIANTEN-MOTOR 1.1
+   Ziel: pro Thema/Stufe einen maximierten Aufgabenpool erzeugen.
+   - Bestehende Basisaufgaben aus TASK_BANK bleiben erhalten.
+   - Zusätzlich entstehen echte Varianten mit anderen Konten,
+     Beträgen, Fällen und Ergebnissen.
+   - In einem 20er-Durchgang wird keine Aufgabe doppelt gezogen.
+   - Neue Inhalte wie Abschreibungen, Rücksendungen und Boni können
+     später hier als weitere Generator-Zweige ergänzt werden.
+   =========================================================== */
+function round2(n){return Math.round((Number(n)+Number.EPSILON)*100)/100;}
+function tax(n){return round2(n*0.19);}
+function gross(n){return round2(n*1.19);}
+function fmtMoney(n){return Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function withAmounts(templates, amounts){
+  const out=[];
+  templates.forEach(t=>amounts.forEach(a=>out.push(booking(`${t[0]} (${fmtMoney(a)}).`, t[1], t[2], t[3]))));
+  return out;
+}
+function uniqueTasks(tasks){
+  const seen=new Set();
+  return tasks.filter(t=>{const key=taskKey(t); if(seen.has(key)) return false; seen.add(key); return true;});
+}
+function taskKey(t){
+  const ans=t.type==='booking'?JSON.stringify({s:[...t.answer.soll].sort(),h:[...t.answer.haben].sort()}):String(t.answer);
+  return `${t.type}|${t.q}|${ans}`;
+}
+function buildMaximizedPool(moduleId, level){
+  const base=(TASK_BANK[moduleId] && TASK_BANK[moduleId][level]) ? TASK_BANK[moduleId][level] : [];
+  const generated=generateSupplementTasks(moduleId, level);
+  const pool=uniqueTasks([...base, ...generated]);
+  if(pool.length<CONFIG.tasksPerLevel){
+    console.warn('Aufgabenpool kleiner als 20. Bitte Generator erweitern:', moduleId, level, pool.length);
+  }
+  return pool;
+}
+function generateSupplementTasks(moduleId, level){
+  const A=[60,120,250,450,800,1250,2000,3500,4800,7600];
+  const out=[];
+  const typAktiv=['Bank','Kasse','BGA','Fuhrpark','Forderungen a. L. L.','Waren (Vorrat)'];
+  const typPassiv=['Eigenkapital','Darlehen','Verbindlichkeiten a. L. L.'];
+  const aufwand=['Mietaufwand','Personalaufwand','Büromaterial','Werbeaufwand','Energieaufwand','Zinsaufwand','Postgebühren','Fremdinstandsetzung'];
+  const ertrag=['Umsatzerlöse','Zinserträge','Mieterträge','Provisionserträge'];
+
+  if(moduleId==='bestandskonten'){
+    if(level===1){
+      typAktiv.forEach(k=>out.push(mc(`${k} ist ein ...`,'Aktivkonto',['Aktivkonto','Passivkonto','Aufwandskonto','Ertragskonto'],`${k} gehört zu den Aktivkonten.`)));
+      typPassiv.forEach(k=>out.push(mc(`${k} ist ein ...`,'Passivkonto',['Aktivkonto','Passivkonto','Aufwandskonto','Ertragskonto'],`${k} gehört zu den Passivkonten.`)));
+      aufwand.slice(0,5).forEach(k=>out.push(mc(`${k} ist ein ...`,'Aufwandskonto',['Aktivkonto','Passivkonto','Aufwandskonto','Ertragskonto'],`${k} ist ein Aufwand.`)));
+      ertrag.forEach(k=>out.push(mc(`${k} ist ein ...`,'Ertragskonto',['Aktivkonto','Passivkonto','Aufwandskonto','Ertragskonto'],`${k} ist ein Ertrag.`)));
+      [['Aktivkonto','Mehrung','Soll'],['Aktivkonto','Minderung','Haben'],['Passivkonto','Mehrung','Haben'],['Passivkonto','Minderung','Soll']].forEach(x=>out.push(mc(`Bei einem ${x[0]} wird eine ${x[1]} gebucht im ...`,x[2],['Soll','Haben'],`${x[0]}: ${x[1]} im ${x[2]}.`)));
+    }
+    if(level===2){
+      const cases=[['Kunde zahlt offene Rechnung per Bank','Bank','nimmt zu','Soll','Aktivkonto nimmt im Soll zu.'],['Kunde zahlt offene Rechnung bar','Kasse','nimmt zu','Soll','Aktivkonto nimmt im Soll zu.'],['Lieferantenrechnung wird per Bank bezahlt','Verbindlichkeiten a. L. L.','nimmt ab','Soll','Passivkonto nimmt im Soll ab.'],['Darlehen wird aufgenommen und auf Bank gutgeschrieben','Darlehen','nimmt zu','Haben','Passivkonto nimmt im Haben zu.'],['Darlehen wird per Bank getilgt','Darlehen','nimmt ab','Soll','Passivkonto nimmt im Soll ab.'],['Barkauf eines Scanners','Kasse','nimmt ab','Haben','Aktivkonto nimmt im Haben ab.'],['Kauf eines Lieferwagens auf Ziel','Fuhrpark','nimmt zu','Soll','Aktivkonto nimmt im Soll zu.'],['Kauf von Waren auf Ziel','Verbindlichkeiten a. L. L.','nimmt zu','Haben','Passivkonto nimmt im Haben zu.'],['Bareinzahlung auf das Bankkonto','Kasse','nimmt ab','Haben','Aktivkonto nimmt im Haben ab.'],['Bareinzahlung auf das Bankkonto','Bank','nimmt zu','Soll','Aktivkonto nimmt im Soll zu.']];
+      cases.forEach(c=>A.slice(0,4).forEach(a=>out.push(mc(`${c[0]} (${fmtMoney(a)}). ${c[1]} ${c[2]}. Buchungsseite?`,c[3],['Soll','Haben'],c[4]))));
+    }
+    if(level===3){
+      const forms=[['Barkauf von BGA','Aktivtausch','BGA nimmt zu, Kasse nimmt ab.'],['Kauf von Waren auf Ziel','Aktiv-Passiv-Mehrung','Aktiva und Passiva nehmen zu.'],['Bezahlung einer Lieferantenrechnung per Bank','Aktiv-Passiv-Minderung','Bank und Verbindlichkeiten nehmen ab.'],['Umwandlung einer Lieferantenschuld in ein Darlehen','Passivtausch','Verbindlichkeiten sinken, Darlehen steigt.'],['Barabhebung vom Bankkonto','Aktivtausch','Bank sinkt, Kasse steigt.'],['Aufnahme eines Darlehens mit Bankgutschrift','Aktiv-Passiv-Mehrung','Bank und Darlehen steigen.']];
+      forms.forEach(f=>A.slice(2,8).forEach(a=>out.push(mc(`${f[0]} über ${fmtMoney(a)}: Welche Bilanzveränderung liegt vor?`,f[1],['Aktivtausch','Passivtausch','Aktiv-Passiv-Mehrung','Aktiv-Passiv-Minderung'],f[2]))));
+    }
+  }
+
+  if(moduleId==='buchungssaetze'){
+    const l1=[['Barabhebung vom Bankkonto für die Kasse',['Kasse'],['Bank'],'Kasse nimmt zu, Bank nimmt ab.'],['Einzahlung von Bargeld aus der Kasse auf die Bank',['Bank'],['Kasse'],'Bank nimmt zu, Kasse nimmt ab.'],['Kunde zahlt offene Rechnung per Bank',['Bank'],['Forderungen a. L. L.'],'Bank nimmt zu, Forderungen nehmen ab.'],['Kunde zahlt offene Rechnung bar',['Kasse'],['Forderungen a. L. L.'],'Kasse nimmt zu, Forderungen nehmen ab.'],['Kauf eines PCs bar',['BGA'],['Kasse'],'BGA nimmt zu, Kasse nimmt ab.'],['Kauf von Waren auf Ziel',['Waren (Vorrat)'],['Verbindlichkeiten a. L. L.'],'Waren nehmen zu, Verbindlichkeiten nehmen zu.'],['Tilgung eines Darlehens per Bank',['Darlehen'],['Bank'],'Darlehen nimmt ab, Bank nimmt ab.'],['Kauf eines Lieferwagens auf Ziel',['Fuhrpark'],['Verbindlichkeiten a. L. L.'],'Fuhrpark nimmt zu, Verbindlichkeiten nehmen zu.']];
+    const l2=[['Zahlung der Ladenmiete per Bank',['Mietaufwand'],['Bank'],'Aufwendungen stehen im Soll.'],['Überweisung der Gehälter per Bank',['Personalaufwand'],['Bank'],'Personalaufwand im Soll, Bank im Haben.'],['Barkauf von Büromaterial',['Büromaterial'],['Kasse'],'Büromaterial ist Aufwand im Soll.'],['Zahlung von Werbekosten per Bank',['Werbeaufwand'],['Bank'],'Werbeaufwand im Soll.'],['Stromrechnung per Bank bezahlt',['Energieaufwand'],['Bank'],'Energieaufwand im Soll.'],['Barverkauf von Waren ohne Steuerbetrachtung',['Kasse'],['Umsatzerlöse'],'Erträge stehen im Haben.'],['Bankgutschrift für Zinserträge',['Bank'],['Zinserträge'],'Zinserträge sind Erträge im Haben.']];
+    if(level===1) out.push(...withAmounts(l1,A.slice(0,6)));
+    if(level===2) out.push(...withAmounts(l2,A.slice(0,6)));
+    if(level===3){
+      const purchase=[['Wareneinkauf auf Ziel',['Aufwendungen für Waren','Vorsteuer'],['Verbindlichkeiten a. L. L.'],'Beim Einkauf entsteht Vorsteuer im Soll.'],['Kauf eines Laptops auf Ziel',['BGA','Vorsteuer'],['Verbindlichkeiten a. L. L.'],'Nettoanlage und Vorsteuer im Soll.'],['Telefonrechnung per Bank',['Postgebühren','Vorsteuer'],['Bank'],'Aufwand und Vorsteuer im Soll.'],['Reparaturrechnung per Bank',['Fremdinstandsetzung','Vorsteuer'],['Bank'],'Aufwand und Vorsteuer im Soll.']];
+      const sales=[['Warenverkauf bar',['Kasse'],['Umsatzerlöse','Umsatzsteuer'],'Beim Verkauf entsteht Umsatzsteuer im Haben.'],['Warenverkauf auf Ziel',['Forderungen a. L. L.'],['Umsatzerlöse','Umsatzsteuer'],'Forderung brutto im Soll, Erlös und USt im Haben.'],['Warenverkauf per Banküberweisung',['Bank'],['Umsatzerlöse','Umsatzsteuer'],'Bank brutto im Soll, Erlös und USt im Haben.']];
+      purchase.forEach(t=>A.slice(1,9).forEach(n=>out.push(booking(`${t[0]}: ${fmtMoney(n)} netto + ${fmtMoney(tax(n))} Vorsteuer.`,t[1],t[2],t[3]))));
+      sales.forEach(t=>A.slice(1,9).forEach(n=>out.push(booking(`${t[0]}: ${fmtMoney(gross(n))} brutto inkl. 19 % USt.`,t[1],t[2],t[3]))));
+    }
+  }
+
+  if(moduleId==='erfolgskonten'){
+    if(level===1){
+      aufwand.forEach(k=>{out.push(mc(`${k} ist ein ...`,'Aufwandskonto',['Aufwandskonto','Ertragskonto','Aktivkonto','Passivkonto'],`${k} ist Aufwand.`));out.push(mc(`${k} wird gebucht im ...`,'Soll',['Soll','Haben'],'Aufwendungen stehen im Soll.'));});
+      ertrag.forEach(k=>{out.push(mc(`${k} ist ein ...`,'Ertragskonto',['Aufwandskonto','Ertragskonto','Aktivkonto','Passivkonto'],`${k} ist Ertrag.`));out.push(mc(`${k} wird gebucht im ...`,'Haben',['Soll','Haben'],'Erträge stehen im Haben.'));});
+    }
+    if(level===2){
+      const cases=[['Zahlung von Gehältern per Bank','Personalaufwand','Gehälter sind Aufwand.'],['Bankgutschrift für Zinserträge','Zinserträge','Zinserträge sind Erträge.'],['Barverkauf von Waren','Umsatzerlöse','Warenverkauf führt zu Umsatzerlösen.'],['Stromrechnung per Bank','Energieaufwand','Stromkosten sind Aufwand.'],['Werberechnung per Bank','Werbeaufwand','Werbung ist Aufwand.'],['Barzahlung für Porto','Postgebühren','Porto ist Aufwand.']];
+      cases.forEach(c=>A.slice(0,5).forEach(a=>out.push(mc(`${c[0]} (${fmtMoney(a)}): Welches Erfolgskonto?`,c[1],[c[1],'Bank','Kasse','Umsatzerlöse','Mietaufwand'].filter((v,i,a)=>a.indexOf(v)===i).slice(0,4),c[2]))));
+    }
+    if(level===3){
+      [119,238,595,1190,1785,2380,3570].forEach(b=>out.push(number(`Ein Bruttobetrag von ${fmtMoney(b)} enthält 19 % USt. Wie hoch ist der Nettobetrag?`,round2(b/1.19),'Brutto durch 1,19 teilen.')));
+      [100,250,640,999,1250,2200,4750].forEach(n=>out.push(number(`Ein Nettobetrag von ${fmtMoney(n)} wird mit 19 % USt berechnet. Wie hoch ist die Steuer?`,tax(n),'Netto × 0,19.')));
+      [...aufwand,...ertrag].forEach(k=>out.push(mc(`${k} wird am Jahresende abgeschlossen über ...`,'GuV',['GuV','SBK','EBK','Bank'],'Erfolgskonten werden über GuV abgeschlossen.')));
+    }
+  }
+
+  if(moduleId==='steuern'){
+    if(level===1){
+      out.push(mc('Vorsteuer entsteht beim ...','Einkauf',['Einkauf','Verkauf'],'Beim Einkauf zahlt das Unternehmen Vorsteuer.'));
+      out.push(mc('Umsatzsteuer entsteht beim ...','Verkauf',['Einkauf','Verkauf'],'Beim Verkauf schuldet das Unternehmen Umsatzsteuer.'));
+      A.forEach(n=>{out.push(number(`19 % Vorsteuer von ${fmtMoney(n)} netto?`,tax(n),'Netto × 0,19.'));out.push(number(`Brutto bei ${fmtMoney(n)} netto und 19 % USt?`,gross(n),'Netto × 1,19.'));});
+    }
+    if(level===2){
+      A.forEach(n=>{out.push(number(`Wareneinkauf netto ${fmtMoney(n)}. Wie hoch ist die Vorsteuer?`,tax(n),'Netto × 0,19.'));out.push(number(`Warenverkauf netto ${fmtMoney(n)}. Wie hoch ist die Umsatzsteuer?`,tax(n),'Netto × 0,19.'));});
+      [119,238,595,1190,2380,4165,5950].forEach(b=>{out.push(number(`Bruttobetrag ${fmtMoney(b)}. Wie hoch ist der Nettobetrag?`,round2(b/1.19),'Brutto durch 1,19.'));out.push(number(`Bruttobetrag ${fmtMoney(b)}. Wie hoch ist der Steueranteil?`,round2(b-b/1.19),'Brutto minus Netto.'));});
+    }
+    if(level===3){
+      [357,714,1190,2380,3332,4998,6188].forEach(b=>out.push(number(`Brutto ${fmtMoney(b)} beim Einkauf. Wie hoch ist die Vorsteuer?`,round2(b-b/1.19),'Erst Netto = Brutto / 1,19.')));
+      out.push(...generateSupplementTasks('buchungssaetze',3).slice(0,40));
+    }
+  }
+
+  if(moduleId==='steuerabschluss'){
+    const pairs=[[190,570],[570,190],[850,1100],[1100,850],[2350,1780],[1780,2350],[999,1250],[1250,999],[1234.55,2644.30],[2644.30,1234.55],[981.75,2220.40],[3333.33,2222.22],[4200.90,5225.10],[7800.70,6500.60]];
+    pairs.forEach(([v,u])=>{out.push(number(`Vorsteuer ${fmtMoney(v)}, Umsatzsteuer ${fmtMoney(u)}. Wie hoch ist die Differenz?`,round2(Math.abs(u-v)),'Differenz zwischen USt und VSt.'));out.push(mc(`Vorsteuer ${fmtMoney(v)}, Umsatzsteuer ${fmtMoney(u)}. Ergebnisart?`,u>v?'Zahllast':'Vorsteuerüberhang',['Zahllast','Vorsteuerüberhang'],'USt größer = Zahllast, VSt größer = Vorsteuerüberhang.'));});
+  }
+
+  if(moduleId==='ebk' || moduleId==='sbk'){
+    const activeSide = moduleId==='ebk' ? 'Habenseite' : 'Sollseite';
+    const passiveSide = moduleId==='ebk' ? 'Sollseite' : 'Habenseite';
+    const activeHint = moduleId==='ebk' ? 'Aktiva der EB stehen im EBK im Haben.' : 'Aktiva stehen im SBK im Soll.';
+    const passiveHint = moduleId==='ebk' ? 'Passiva der EB stehen im EBK im Soll.' : 'Passiva stehen im SBK im Haben.';
+    if(level===1){
+      typAktiv.forEach(k=>out.push(mc(`${k} steht im ${moduleId.toUpperCase()} auf der ...`,activeSide,['Sollseite','Habenseite'],activeHint)));
+      typPassiv.forEach(k=>out.push(mc(`${k} steht im ${moduleId.toUpperCase()} auf der ...`,passiveSide,['Sollseite','Habenseite'],passiveHint)));
+      [[10000,4000],[25000,12000],[48500,25000],[99999,45000],[64000,19000],[220000,98000]].forEach(([a,f])=>out.push(number(`Aktiva ${fmtMoney(a)}, Fremdkapital ${fmtMoney(f)}. Eigenkapital?`,round2(a-f),'EK = Aktiva - Fremdkapital.')));
+      out.push(mc(moduleId==='ebk'?'Das EBK erstellt man am ...':'Das SBK erstellt man am ...',moduleId==='ebk'?'Jahresanfang':'Jahresende',['Jahresanfang','Jahresende'],moduleId==='ebk'?'EBK = Eröffnungsbilanzkonto.':'SBK = Schlussbilanzkonto.'));
+      out.push(mc(moduleId==='ebk'?'Das EBK ist das ...':'Das SBK ist die Grundlage für die ...',moduleId==='ebk'?'Spiegelbild der Eröffnungsbilanz':'Schlussbilanz',moduleId==='ebk'?['Spiegelbild der Eröffnungsbilanz','Gewinnermittlung','Steuerberechnung','Kassenprüfung']:['Eröffnungsbilanz','Schlussbilanz','Umsatzsteuer','Kassenprüfung'],moduleId==='ebk'?'Aktiva/Passiva werden spiegelbildlich übertragen.':'Das SBK sammelt die Schlussbestände.'));
+    }
+    if(level===2){
+      [[30000,12500],[45500,18200],[78000,33100],[125000,47500],[99900,56000],[64000,19000],[220000,98000],[99999.99,44444.44]].forEach(([a,f])=>out.push(number(`Aktiva ${fmtMoney(a)}, Fremdkapital ${fmtMoney(f)}. Eigenkapital?`,round2(a-f),'EK = Aktiva - Fremdkapital.')));
+      out.push(mc(moduleId==='ebk'?'Eröffnungsbuchung eines Aktivkontos lautet ...':'Schlussbestand eines Aktivkontos wird gebucht ...',moduleId==='ebk'?'Aktivkonto an EBK':'SBK an Aktivkonto',moduleId==='ebk'?['Aktivkonto an EBK','EBK an Aktivkonto','GuV an Aktivkonto','SBK an Aktivkonto']:['Aktivkonto an SBK','SBK an Aktivkonto','GuV an SBK','EBK an Aktivkonto'],activeHint));
+      out.push(mc(moduleId==='ebk'?'Eröffnungsbuchung eines Passivkontos lautet ...':'Schlussbestand eines Passivkontos wird gebucht ...',moduleId==='ebk'?'EBK an Passivkonto':'Passivkonto an SBK',moduleId==='ebk'?['Passivkonto an EBK','EBK an Passivkonto','GuV an Passivkonto','SBK an Passivkonto']:['Passivkonto an SBK','SBK an Passivkonto','EBK an Passivkonto','GuV an Passivkonto'],passiveHint));
+      typAktiv.forEach(k=>out.push(mc(`${moduleId.toUpperCase()}: ${k} ist ein Aktivkonto. Auf welcher Seite steht es?`,activeSide,['Sollseite','Habenseite'],activeHint)));
+      typPassiv.forEach(k=>out.push(mc(`${moduleId.toUpperCase()}: ${k} ist ein Passivkonto. Auf welcher Seite steht es?`,passiveSide,['Sollseite','Habenseite'],passiveHint)));
+    }
+    if(level===3){
+      [[5500,8000,2300,4250,600,4000,1200],[12500.75,7800.25,3400.10,9999.90,555.55,10000.20,4500.40],[22000,35000,18000,9200,750,30000,12500],[9999.99,12345.67,5432.10,2222.22,888.88,11111.11,3333.33],[41000.40,22000.20,6400.60,13100.10,900.90,25000.50,7777.70],[17500.25,9800.75,6200.50,4500.40,750.30,8800.10,3200.20],[63000.99,18000.88,24000.77,15000.66,1200.55,40000.44,16000.33],[8888.88,7777.77,6666.66,5555.55,444.44,3333.33,2222.22],[150000.00,55000.50,45000.25,18000.75,2500.40,120000.10,35000.20],[33333.33,22222.22,11111.11,9999.99,888.88,25000.00,7777.77]].forEach(([bga,fu,w,bank,kasse,dar,verb])=>{const akt=bga+fu+w+bank+kasse;out.push(number(`${moduleId.toUpperCase()}: BGA ${fmtMoney(bga)}, Fuhrpark ${fmtMoney(fu)}, Waren ${fmtMoney(w)}, Bank ${fmtMoney(bank)}, Kasse ${fmtMoney(kasse)}, Darlehen ${fmtMoney(dar)}, Verb. ${fmtMoney(verb)}. Eigenkapital?`,round2(akt-dar-verb),'Summe Aktiva minus Fremdkapital.'));});
+      out.push(mc('Welche Gliederung ist bei Aktiva sinnvoll?','Anlagevermögen vor Umlaufvermögen',['Anlagevermögen vor Umlaufvermögen','Umlaufvermögen vor Anlagevermögen','Kasse vor BGA','Bank vor Fuhrpark'],'Bilanzgliederung beachten.'));
+      out.push(mc('Welche Gliederung ist bei Passiva sinnvoll?','Eigenkapital vor Fremdkapital',['Eigenkapital vor Fremdkapital','Fremdkapital vor Eigenkapital','Darlehen vor Eigenkapital','Verbindlichkeiten vor Eigenkapital'],'Bilanzgliederung beachten.'));
+      typAktiv.forEach(k=>out.push(mc(`${moduleId.toUpperCase()} Profi: ${k} gehört auf die ...`,activeSide,['Sollseite','Habenseite'],activeHint)));
+      typPassiv.forEach(k=>out.push(mc(`${moduleId.toUpperCase()} Profi: ${k} gehört auf die ...`,passiveSide,['Sollseite','Habenseite'],passiveHint)));
+    }
+  }
+
+  if(moduleId==='guv'){
+    if(level===1){
+      out.push(mc('Aufwendungen stehen im GuV auf der ...','Sollseite',['Sollseite','Habenseite'],'GuV: Soll = Aufwendungen.'));
+      out.push(mc('Erträge stehen im GuV auf der ...','Habenseite',['Sollseite','Habenseite'],'GuV: Haben = Erträge.'));
+      aufwand.slice(0,6).forEach(k=>out.push(mc(`${k} steht im GuV auf der ...`,'Sollseite',['Sollseite','Habenseite'],'Aufwendungen stehen im Soll.')));
+      ertrag.forEach(k=>out.push(mc(`${k} steht im GuV auf der ...`,'Habenseite',['Sollseite','Habenseite'],'Erträge stehen im Haben.')));
+      [[8000,10500],[12400,9900],[15000,18500],[6500,7200],[23000,21000],[9999,15555]].forEach(([a,e])=>out.push(mc(`Aufwendungen ${fmtMoney(a)}, Erträge ${fmtMoney(e)}. Ergebnis?`,e>=a?'Gewinn':'Verlust',['Gewinn','Verlust'],e>=a?'Mehr Ertrag als Aufwand = Gewinn.':'Mehr Aufwand als Ertrag = Verlust.')));
+    }
+    if(level===2 || level===3){
+      const pairs=level===2?[[8000,10500],[12400,9900],[15000,18500],[6500,7200],[23000,21000],[9999,15555],[1800,4400],[4000,1250],[7500,7501],[24000,27010]]:[[15333.45,19876.10],[22010.80,20999.90],[12345.67,18555.55],[9999.99,10000.01],[45678.90,32100.55],[7777.77,8888.88],[24000.40,27010.90],[55555.55,44444.44],[1010.10,999.99],[19990.99,20001.01]];
+      pairs.forEach(([a,e])=>out.push(number(`Aufwendungen ${fmtMoney(a)}, Erträge ${fmtMoney(e)}. Berechne den Erfolg als Betrag.`,round2(Math.abs(e-a)),e>=a?'Gewinn: Erträge minus Aufwendungen.':'Verlust: Aufwendungen minus Erträge.')));
+      out.push(mc('Gewinn wird im GuV eingetragen auf der ...','Sollseite',['Sollseite','Habenseite'],'Gewinn gleicht die Sollseite aus.'));
+      out.push(mc('Verlust wird im GuV eingetragen auf der ...','Habenseite',['Sollseite','Habenseite'],'Verlust gleicht die Habenseite aus.'));
+      out.push(mc('Der Erfolg aus der GuV verändert direkt das ...','Eigenkapital',['Bankkonto','Eigenkapital','EBK','Vorsteuerkonto'],'Gewinn erhöht, Verlust mindert das Eigenkapital.'));
+      aufwand.slice(0,6).forEach(k=>out.push(mc(`GuV-Abschluss: ${k} gehört auf die ...`,'Sollseite',['Sollseite','Habenseite'],'Aufwendungen stehen im GuV im Soll.')));
+      ertrag.forEach(k=>out.push(mc(`GuV-Abschluss: ${k} gehört auf die ...`,'Habenseite',['Sollseite','Habenseite'],'Erträge stehen im GuV im Haben.')));
+      [['Gewinn','Sollseite'],['Verlust','Habenseite']].forEach(x=>out.push(mc(`${x[0]} wird im GuV auf welcher Seite eingetragen?`,x[1],['Sollseite','Habenseite'],`${x[0]} gleicht das GuV-Konto aus.`)));
+    }
+  }
+  return out;
+}
+
+const ALL_ACCOUNTS = ['Bank','Kasse','BGA','Fuhrpark','Waren (Vorrat)','Aufwendungen für Waren','Forderungen a. L. L.','Verbindlichkeiten a. L. L.','Darlehen','Eigenkapital','Mietaufwand','Personalaufwand','Büromaterial','Werbeaufwand','Energieaufwand','Postgebühren','Fremdinstandsetzung','Zinsaufwand','Umsatzerlöse','Zinserträge','Mieterträge','Provisionserträge','Vorsteuer','Umsatzsteuer','GuV','EBK','SBK','- kein zweites Konto -'];
+
+let state = loadState();
+let currentModule = null;
+let selectedLevel = 1;
+let session = null;
+let selectedChoice = null;
+let lastResult = null;
+
+function defaultState(){
+  const unlocked = {}, best = {}, badges = {};
+  Object.keys(MODULES).forEach(k=>{unlocked[k]=1; best[k]={1:null,2:null,3:null}; badges[k]=[];});
+  return {unlocked, best, badges};
+}
+function loadState(){try{return JSON.parse(localStorage.getItem(CONFIG.storageKey)) || defaultState();}catch(e){return defaultState();}}
+function saveState(){localStorage.setItem(CONFIG.storageKey, JSON.stringify(state));}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});} 
+function setTheme(color){document.documentElement.style.setProperty('--primary',color);document.documentElement.style.setProperty('--primary-dark',color);} 
+
+function showHome(){currentModule=null;setTheme('#005aab');renderTiles();closeTeacherMode();showScreen('screen-home');}
+function renderTiles(){
+  const wrap=document.getElementById('moduleTiles');wrap.innerHTML='';
+  Object.entries(MODULES).forEach(([id,m])=>{
+    const best = state.best[id];
+    const passed = [1,2,3].filter(l=>best[l]?.passed).length;
+    const tile=document.createElement('button'); tile.className='tile'; tile.style.borderLeftColor=m.color; tile.onclick=()=>openModule(id);
+    tile.innerHTML=`<span class="icon" aria-hidden="true">${m.icon}</span><span><h3>${m.title}</h3><p>${m.intro}</p><span class="pill">Freigeschaltet: Stufe ${state.unlocked[id]}</span> <span class="pill">Bestanden: ${passed}/3</span></span>`;
+    wrap.appendChild(tile);
+  });
+}
+function openModule(id){currentModule=id;selectedLevel=1;showCurrentModule();}
+function showCurrentModule(){
+  const m=MODULES[currentModule]; setTheme(m.color); closeTeacherMode(); showScreen('screen-module');
+  document.getElementById('moduleTitle').textContent=m.icon+' '+m.title;
+  document.getElementById('moduleIntro').textContent=m.intro;
+  renderLevelCards();
+}
+function renderLevelCards(){
+  const wrap=document.getElementById('levelCards');wrap.innerHTML='';
+  [1,2,3].forEach(l=>{
+    const locked = l > state.unlocked[currentModule];
+    const best = state.best[currentModule][l];
+    const c=document.createElement('button'); c.className='level-card '+(selectedLevel===l?'active ':'')+(locked?'locked':''); c.disabled=locked;
+    c.onclick=()=>{selectedLevel=l;renderLevelCards();};
+    const help = l===1?'mit Hilfen und Grundlagen':l===2?'weniger Hilfen, mehr Transfer':'Profi: gemischt und genauer rechnen';
+    c.innerHTML=`<h3>${locked?'🔒':'🔓'} Stufe ${l}</h3><p>${help}</p><p class="tiny">${best?`Bestes Ergebnis: ${best.correct}/${CONFIG.tasksPerLevel} (${best.percent}%)`:'Noch kein Ergebnis'}</p>`;
+    wrap.appendChild(c);
+  });
+}
+function startSelectedLevel(){startSession(currentModule, selectedLevel);}
+function startSession(moduleId, level){
+  const pool = buildMaximizedPool(moduleId, level);
+  session = {moduleId, level, index:0, correct:0, tasks:shuffle(pool).slice(0,CONFIG.tasksPerLevel), mistakes:[], answers:[]};
+  selectedChoice=null; renderTask(); showScreen('screen-game');
+}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5);}
+function renderTask(){
+  const m=MODULES[session.moduleId]; setTheme(m.color); selectedChoice=null;
+  const t=session.tasks[session.index];
+  document.getElementById('gameModulePill').textContent=m.title;
+  document.getElementById('gameLevelPill').textContent='Stufe '+session.level;
+  document.getElementById('scorePill').textContent=`Punkte: ${session.correct}/${session.index}`;
+  document.getElementById('progressBar').style.width=((session.index)/CONFIG.tasksPerLevel*100)+'%';
+  document.getElementById('progressText').textContent=`Aufgabe ${session.index+1} von ${CONFIG.tasksPerLevel}`;
+  document.getElementById('taskBox').textContent=t.q;
+  document.getElementById('feedback').className='feedback';document.getElementById('feedback').style.display='none';
+  document.getElementById('checkBtn').classList.remove('hidden');document.getElementById('nextBtn').classList.add('hidden');
+  const area=document.getElementById('answerArea'); area.innerHTML='';
+  if(t.type==='mc') renderMC(area,t);
+  if(t.type==='number') renderNumber(area,t);
+  if(t.type==='booking') renderBooking(area,t);
+}
+function renderMC(area,t){
+  const grid=document.createElement('div'); grid.className='choice-grid';
+  shuffle(t.options).forEach(opt=>{const b=document.createElement('button'); b.className='choice'; b.type='button'; b.setAttribute('aria-pressed','false'); b.textContent=opt; b.onclick=()=>{document.querySelectorAll('.choice').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); selectedChoice=opt;}; grid.appendChild(b);});
+  area.appendChild(grid);
+}
+function renderNumber(area,t){
+  area.innerHTML=`<div><label for="numAnswer">Deine Antwort in Euro/Zahl</label><input id="numAnswer" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>`;
+}
+function renderBooking(area,t){
+  const opts=ALL_ACCOUNTS.map(a=>`<option value="${a}">${a}</option>`).join('');
+  area.innerHTML=`<div class="form-grid"><div><label>Soll 1</label><select id="soll1">${opts}</select></div><div><label>Soll 2</label><select id="soll2">${opts}</select></div><div><label>Haben 1</label><select id="haben1">${opts}</select></div><div><label>Haben 2</label><select id="haben2">${opts}</select></div></div><p class="tiny">Tipp: Wähle „- kein zweites Konto -“, wenn nur ein Konto benötigt wird.</p>`;
+  ['soll2','haben2'].forEach(id=>document.getElementById(id).value='- kein zweites Konto -');
+}
+function checkCurrentAnswer(){
+  const t=session.tasks[session.index]; let ok=false; let user='';
+  if(t.type==='mc'){ user=selectedChoice || ''; ok=user===t.answer; }
+  if(t.type==='number'){ const val=parseFloat(document.getElementById('numAnswer').value.replace(',','.')); user=isNaN(val)?'':val.toFixed(2); ok=!isNaN(val)&&Math.abs(val-t.answer)<0.011; }
+  if(t.type==='booking'){
+    const s=[v('soll1'),v('soll2')].filter(x=>x && x!=='- kein zweites Konto -'); const h=[v('haben1'),v('haben2')].filter(x=>x && x!=='- kein zweites Konto -');
+    user=`Soll: ${s.join(' + ')||'-'} / Haben: ${h.join(' + ')||'-'}`;
+    ok=sameSet(s,t.answer.soll)&&sameSet(h,t.answer.haben);
+  }
+  const fb=document.getElementById('feedback');
+  if(ok){session.correct++; fb.className='feedback ok'; fb.innerHTML='✅ Richtig! '+positiveMessage();}
+  else{session.mistakes.push({q:t.q, user:user||'keine Antwort', correct:solutionText(t), hint:t.hint, topic:t.topic}); fb.className='feedback bad'; fb.innerHTML='❌ Noch nicht richtig. <br><strong>Hinweis:</strong> '+t.hint;}
+  session.answers.push({q:t.q, ok}); fb.style.display='block';
+  document.getElementById('checkBtn').classList.add('hidden');document.getElementById('nextBtn').classList.remove('hidden');
+}
+function v(id){return document.getElementById(id).value;}
+function sameSet(a,b){return a.length===b.length && a.every(x=>b.includes(x));}
+function solutionText(t){if(t.type==='mc')return t.answer;if(t.type==='number')return Number(t.answer).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});return 'Soll: '+t.answer.soll.join(' + ')+' an Haben: '+t.answer.haben.join(' + ');}
+function positiveMessage(){return ['Gut gemacht!','Sehr sauber gearbeitet!','Weiter so!','Starke Leistung!'][Math.floor(Math.random()*4)];}
+function nextTask(){session.index++; if(session.index>=CONFIG.tasksPerLevel) finishSession(); else renderTask();}
+function finishSession(){
+  const percent=Math.round(session.correct/CONFIG.tasksPerLevel*100); const passed=percent>=CONFIG.passPercent;
+  if(passed && session.level<3 && state.unlocked[session.moduleId]<session.level+1) state.unlocked[session.moduleId]=session.level+1;
+  const best=state.best[session.moduleId][session.level]; if(!best || percent>best.percent) state.best[session.moduleId][session.level]={correct:session.correct, percent, passed, date:new Date().toLocaleString('de-DE')};
+  if(passed && !state.badges[session.moduleId].includes('Stufe '+session.level)) state.badges[session.moduleId].push('Stufe '+session.level);
+  saveState();
+  lastResult={...session, percent, passed, date:new Date().toLocaleString('de-DE')};
+  renderResult(); showScreen('screen-result');
+}
+function renderResult(){
+  const m=MODULES[lastResult.moduleId];
+  document.getElementById('resultSummary').innerHTML=`<div class="result-grid"><div><strong>Lernapp:</strong><br>${CONFIG.appName}</div><div><strong>Thema:</strong><br>${m.title}</div><div><strong>Stufe:</strong><br>${lastResult.level}</div><div><strong>Datum:</strong><br>${lastResult.date}</div><div><strong>Ergebnis:</strong><br>${lastResult.correct}/${CONFIG.tasksPerLevel} richtig</div><div><strong>Prozent:</strong><br>${lastResult.percent}%</div><div><strong>Status:</strong><br>${lastResult.passed?'✅ Bestanden':'❌ Nicht bestanden'}</div><div><strong>Nächste Stufe:</strong><br>${lastResult.passed && lastResult.level<3?'freigeschaltet':'keine neue Freischaltung'}</div></div>`;
+  renderAdvice(); updateResultTexts();
+}
+function renderAdvice(){
+  const advice=[];
+  if(lastResult.passed) advice.push('✅ Du hast die Stufe bestanden. Wiederhole die Fehler gezielt und probiere anschließend die nächste Stufe.');
+  else advice.push('📘 Wiederhole die Grundregeln und starte die Stufe erneut. Ziel sind mindestens 15 richtige Aufgaben.');
+  const hints=[...new Set(lastResult.mistakes.map(m=>m.hint))].slice(0,6);
+  if(hints.length) hints.forEach(h=>advice.push('• '+h)); else advice.push('🌟 Keine Fehler notiert. Sehr gute Leistung!');
+  document.getElementById('learningAdvice').innerHTML='<ul>'+advice.map(a=>`<li>${a}</li>`).join('')+'</ul>';
+  const rows=lastResult.mistakes.length?lastResult.mistakes.map((m,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(m.q)}</td><td>${escapeHtml(m.user)}</td><td>${escapeHtml(m.correct)}</td><td>${escapeHtml(m.hint)}</td></tr>`).join(''):'<tr><td colspan="5">Keine Fehler – sehr gut!</td></tr>';
+  document.getElementById('mistakeTable').innerHTML=`<table><thead><tr><th>#</th><th>Aufgabe/Thema</th><th>Deine Antwort</th><th>Lösung</th><th>Lernhinweis</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function updateResultTexts(){/* Platzhalter für künftige Live-Ergänzungen im Druckbereich */}
+function sendMail(){
+  const name=document.getElementById('studentName').value || 'ohne Name'; const cls=document.getElementById('studentClass').value || 'ohne Klasse'; const m=MODULES[lastResult.moduleId];
+  const subject=encodeURIComponent(`${CONFIG.appName}: ${m.title} Stufe ${lastResult.level} – ${name} ${cls}`);
+  const hints=[...new Set(lastResult.mistakes.map(x=>x.hint))].slice(0,8).join('\n- ') || 'Keine Fehlerhinweise.';
+  const body=encodeURIComponent(`Hallo,\n\nhier ist mein Ergebnis aus der Lernapp.\n\nName: ${name}\nKlasse/Kurs: ${cls}\nThema: ${m.title}\nStufe: ${lastResult.level}\nDatum: ${lastResult.date}\nErgebnis: ${lastResult.correct}/${CONFIG.tasksPerLevel} richtig (${lastResult.percent}%)\nStatus: ${lastResult.passed?'Bestanden':'Nicht bestanden'}\n\nLernhinweise:\n- ${hints}\n\nBitte hänge die zuvor gespeicherte PDF-Datei dieser E-Mail manuell an.\n`);
+  window.location.href=`mailto:${CONFIG.teacherEmail}?subject=${subject}&body=${body}`;
+}
+function confirmAbort(){if(confirm('Training wirklich abbrechen? Dein aktueller Durchgang wird nicht gespeichert.')) showCurrentModule();}
+
+function openTeacherLogin(){document.getElementById('teacherModal').classList.remove('hidden');document.getElementById('teacherModal').classList.add('active');document.getElementById('teacherLogin').classList.remove('hidden');document.getElementById('teacherContent').classList.add('hidden');document.getElementById('teacherCode').value='';document.getElementById('teacherCode').focus();}
+function verifyTeacherCode(){if(document.getElementById('teacherCode').value===CONFIG.teacherCode){document.getElementById('teacherLogin').classList.add('hidden');document.getElementById('teacherContent').classList.remove('hidden');renderTeacherStats();}else alert('Code nicht korrekt.');}
+function renderTeacherStats(){
+  let html=`<div class="result-grid"><div><strong>App:</strong><br>${CONFIG.appName}</div><div><strong>${CONFIG.version}</strong><br>Dateiname: ${CONFIG.suggestedFilename}</div><div><strong>Aufgaben je Stufe:</strong><br>${CONFIG.tasksPerLevel}</div><div><strong>Bestehensgrenze:</strong><br>${CONFIG.passPercent}%</div></div>`;
+  html+='<table><thead><tr><th>Thema</th><th>Freigeschaltet</th><th>Beste Ergebnisse</th></tr></thead><tbody>';
+  Object.entries(MODULES).forEach(([id,m])=>{html+=`<tr><td>${m.title}</td><td>Stufe ${state.unlocked[id]}</td><td>${[1,2,3].map(l=>`S${l}: ${state.best[id][l]?state.best[id][l].percent+'%':'-'}`).join(' | ')}</td></tr>`;});
+  html+='</tbody></table>'; document.getElementById('teacherStats').innerHTML=html;
+}
+function unlockAllLevels(){Object.keys(MODULES).forEach(k=>state.unlocked[k]=3);saveState();renderTeacherStats();alert('Alle Stufen wurden lokal freigeschaltet.');}
+function resetProgress(){if(confirm('Lokalen Fortschritt wirklich löschen?')){state=defaultState();saveState();renderTeacherStats();renderTiles();alert('Fortschritt wurde gelöscht.');}}
+function closeTeacherMode(){const t=document.getElementById('teacherModal'); t.classList.add('hidden'); t.classList.remove('active');}
+function escapeHtml(str){return String(str).replace(/[&<>'"]/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));}
+
+renderTiles();
+</script>
+</body>
+</html>
